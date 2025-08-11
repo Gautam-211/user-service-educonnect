@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -16,12 +17,17 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
+    @Value("${jwt.secret}")
+    private String secret;
+
     private Key key;
+
     private JwtParser jwtParser;
 
     @PostConstruct
     public void init() {
-        key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        byte[] keyBytes = java.util.Base64.getDecoder().decode(secret);
+        key = Keys.hmacShaKeyFor(keyBytes); // Use decoded bytes to create key
         jwtParser = Jwts.parser().verifyWith((SecretKey) key).build();
     }
 
