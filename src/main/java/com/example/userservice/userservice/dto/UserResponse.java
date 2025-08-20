@@ -2,11 +2,13 @@ package com.example.userservice.userservice.dto;
 
 import lombok.*;
 
+import java.io.Serializable;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserResponse {
+public class UserResponse implements Serializable {
     private Long id;
     private String fullName;
     private String email;

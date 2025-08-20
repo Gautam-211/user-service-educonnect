@@ -5,6 +5,7 @@ import com.example.userservice.userservice.entity.User;
 import com.example.userservice.userservice.repository.UserRepository;
 import com.example.userservice.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -84,7 +85,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "#id")
     public UserResponse getUserById(Long id) {
+        System.out.println("************************************");
+        System.out.println("Fetching user from data with id : " + id);
+        System.out.println("************************************");
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found."));
         return mapToResponse(user);
