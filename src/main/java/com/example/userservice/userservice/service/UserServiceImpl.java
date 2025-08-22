@@ -2,6 +2,9 @@ package com.example.userservice.userservice.service;
 
 import com.example.userservice.userservice.dto.*;
 import com.example.userservice.userservice.entity.User;
+import com.example.userservice.userservice.exception.AlreadyExistsException;
+import com.example.userservice.userservice.exception.InvalidCredentialsException;
+import com.example.userservice.userservice.exception.UserNotFoundException;
 import com.example.userservice.userservice.repository.UserRepository;
 import com.example.userservice.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +27,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse registerUser(UserRegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered.");
+            throw new AlreadyExistsException("A user with email '" + request.getEmail() + "' already exists.");
         }
 
         User user = User.builder()
@@ -46,13 +49,13 @@ public class UserServiceImpl implements UserService {
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
 
         if (userOptional.isEmpty()) {
-            throw new RuntimeException("User not found.");
+            throw new UserNotFoundException("User not found with email: " + request.getEmail());
         }
 
         User user = userOptional.get();
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials.");
+            throw new InvalidCredentialsException("Password is incorrect.");
         }
 
         Map<String, Object> extraClaims = new HashMap<>();
@@ -62,13 +65,13 @@ public class UserServiceImpl implements UserService {
 
         String jwtToken = jwtService.generateToken(extraClaims, user.getEmail());
 
-        return new AuthResponse(jwtToken, "Login Successul");
+        return new AuthResponse(jwtToken, "Login Successful");
     }
 
     @Override
     public UserResponse updateUser(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException("User with id " + id + " not found."));
 
         user.setFullName(request.getFullName());
 
@@ -92,14 +95,14 @@ public class UserServiceImpl implements UserService {
         System.out.println("************************************");
 
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found."));
+                .orElseThrow(() -> new UserNotFoundException("User with id " + id + " not found."));
         return mapToResponse(user);
     }
 
     @Override
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found.");
+            throw new UserNotFoundException("User with id " + id + " not found.");
         }
         userRepository.deleteById(id);
     }

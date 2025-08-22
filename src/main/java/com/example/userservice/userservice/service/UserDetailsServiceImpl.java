@@ -1,6 +1,7 @@
 package com.example.userservice.userservice.service;
 
 import com.example.userservice.userservice.entity.User;
+import com.example.userservice.userservice.exception.UserNotFoundException;
 import com.example.userservice.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
@@ -15,7 +16,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User with email '" + email + "' not found."));
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
