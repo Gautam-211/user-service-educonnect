@@ -45,6 +45,10 @@ public class JwtService {
         return extractClaim(token, claims -> claims.getSubject());
     }
 
+    public String extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", String.class));
+    }
+
     public <T> T extractClaim(String token, Function<io.jsonwebtoken.Claims, T> claimsResolver) {
         final var claims = jwtParser.parseSignedClaims(token).getPayload();
         return claimsResolver.apply(claims);

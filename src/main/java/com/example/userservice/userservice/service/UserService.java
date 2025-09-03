@@ -8,4 +8,6 @@ public interface UserService {
     UserResponse updateUser(Long id,UserUpdateRequest request);
     UserResponse getUserById(Long id);
     void deleteUser(Long id);
+    UserResponse enrollInCourse(Long userId, Long courseId);
+    UserResponse addCourseToInstructor(Long instructorId, Long courseId);
 }

@@ -1,20 +1,18 @@
 package com.example.userservice.userservice.service;
 
+import com.example.userservice.userservice.client.CourseClient;
 import com.example.userservice.userservice.dto.*;
 import com.example.userservice.userservice.entity.User;
-import com.example.userservice.userservice.exception.AlreadyExistsException;
-import com.example.userservice.userservice.exception.InvalidCredentialsException;
-import com.example.userservice.userservice.exception.UserNotFoundException;
+import com.example.userservice.userservice.exception.*;
 import com.example.userservice.userservice.repository.UserRepository;
 import com.example.userservice.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +21,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final CourseClient courseClient;
 
     @Override
     public UserResponse registerUser(UserRegisterRequest request) {
@@ -37,6 +36,7 @@ public class UserServiceImpl implements UserService {
                 .phone(request.getPhone())
                 .role(request.getRole())
                 .isVerified(false)
+                .courseIds(new ArrayList<>())
                 .build();
 
         User savedUser = userRepository.save(user);
@@ -89,6 +89,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Cacheable(value = "users", key = "#id")
+    @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
         System.out.println("************************************");
         System.out.println("Fetching user from data with id : " + id);
@@ -99,12 +100,55 @@ public class UserServiceImpl implements UserService {
         return mapToResponse(user);
     }
 
+    //
     @Override
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User with id " + id + " not found.");
         }
         userRepository.deleteById(id);
+    }
+
+    @Override
+    public UserResponse enrollInCourse(Long userId, Long courseId) {
+        // Check if course exists
+        if(!courseClient.courseExists(courseId)){
+            throw new ResourceNotFoundException("Course with id " + courseId + " not found.");
+        }
+
+        // Get the logged-in user
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        // Ensure role is STUDENT
+        if (!student.getRole().equals("STUDENT")) {
+            throw new RoleAccessDeniedException("Only students can enroll in courses");
+        }
+
+        // Prevent duplicate enrollment
+        if (student.getCourseIds().contains(courseId)) {
+            throw new AlreadyExistsException("Already enrolled in this course");
+        }
+
+        student.getCourseIds().add(courseId);
+        return mapToResponse(userRepository.save(student));
+    }
+
+    @Override
+    @Transactional
+    public UserResponse addCourseToInstructor(Long instructorId, Long courseId) {
+        User instructor = userRepository.findById(instructorId)
+                .orElseThrow(() -> new UserNotFoundException("Instructor not found with id " + instructorId));
+
+        if (!"INSTRUCTOR".equalsIgnoreCase(instructor.getRole())) {
+            throw new IllegalArgumentException("User with id " + instructorId + " is not an instructor");
+        }
+
+        // Assuming instructor has a List<Long> or Set<Long> for courses
+        instructor.getCourseIds().add(courseId);
+        User updated = userRepository.save(instructor);
+
+        return mapToResponse(updated);
     }
 
     private UserResponse mapToResponse(User user) {
@@ -115,6 +159,7 @@ public class UserServiceImpl implements UserService {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .isVerified(user.isVerified())
+                .courseIds(new ArrayList<>(user.getCourseIds()))
                 .build();
     }
 }

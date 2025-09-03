@@ -3,6 +3,8 @@ package com.example.userservice.userservice.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -29,4 +31,13 @@ public class User {
     private String role;
 
     private boolean isVerified;
+
+    // For both students and instructors → courseIds
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "user_courses",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Column(name = "course_id")
+    private List<Long> courseIds;
 }
