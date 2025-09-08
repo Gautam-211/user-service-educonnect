@@ -1,6 +1,7 @@
 package com.example.userservice.userservice.client;
 
 import com.example.userservice.userservice.exception.ExternalServiceException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -8,6 +9,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.http.ResponseEntity;
 
 @Service
+@Slf4j
 public class CourseClient {
 
     private final RestTemplate restTemplate;

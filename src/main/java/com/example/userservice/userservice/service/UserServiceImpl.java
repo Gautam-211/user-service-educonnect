@@ -7,6 +7,7 @@ import com.example.userservice.userservice.exception.*;
 import com.example.userservice.userservice.repository.UserRepository;
 import com.example.userservice.userservice.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -25,6 +27,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse registerUser(UserRegisterRequest request) {
+        log.info("Registering user with email: {}", request.getEmail());
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AlreadyExistsException("A user with email '" + request.getEmail() + "' already exists.");
         }
@@ -41,11 +44,13 @@ public class UserServiceImpl implements UserService {
 
         User savedUser = userRepository.save(user);
 
+        log.info("User registered with id: {}", savedUser.getId());
         return mapToResponse(savedUser);
     }
 
     @Override
     public AuthResponse loginUser(UserLoginRequest request) {
+        log.info("Attempting login for email: {}", request.getEmail());
         Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
 
         if (userOptional.isEmpty()) {
@@ -65,11 +70,13 @@ public class UserServiceImpl implements UserService {
 
         String jwtToken = jwtService.generateToken(extraClaims, user.getEmail());
 
+        log.info("Login successful for user id: {}", user.getId());
         return new AuthResponse(jwtToken, "Login Successful");
     }
 
     @Override
     public UserResponse updateUser(Long id, UserUpdateRequest request) {
+        log.info("Updating user with id: {}", id);
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User with id " + id + " not found."));
 
@@ -84,6 +91,8 @@ public class UserServiceImpl implements UserService {
         }
 
         User updatedUser = userRepository.save(user);
+
+        log.info("User with id: {} updated successfully", id);
         return mapToResponse(updatedUser);
     }
 
@@ -103,14 +112,17 @@ public class UserServiceImpl implements UserService {
     //
     @Override
     public void deleteUser(Long id) {
+        log.info("Deleting user with id: {}", id);
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User with id " + id + " not found.");
         }
         userRepository.deleteById(id);
+        log.info("User with id: {} deleted successfully", id);
     }
 
     @Override
     public UserResponse enrollInCourse(Long userId, Long courseId) {
+        log.info("Enrolling user with id: {} in course with id: {}", userId, courseId);
         // Check if course exists
         if(!courseClient.courseExists(courseId)){
             throw new ResourceNotFoundException("Course with id " + courseId + " not found.");
@@ -131,12 +143,15 @@ public class UserServiceImpl implements UserService {
         }
 
         student.getCourseIds().add(courseId);
+
+        log.info("User with id: {} enrolled in course with id: {}", userId, courseId);
         return mapToResponse(userRepository.save(student));
     }
 
     @Override
     @Transactional
     public UserResponse addCourseToInstructor(Long instructorId, Long courseId) {
+        log.info("Adding course with id: {} to instructor with id: {}", courseId, instructorId);
         User instructor = userRepository.findById(instructorId)
                 .orElseThrow(() -> new UserNotFoundException("Instructor not found with id " + instructorId));
 
@@ -148,6 +163,7 @@ public class UserServiceImpl implements UserService {
         instructor.getCourseIds().add(courseId);
         User updated = userRepository.save(instructor);
 
+        log.info("Course with id: {} added to instructor with id: {}", courseId, instructorId);
         return mapToResponse(updated);
     }
 
